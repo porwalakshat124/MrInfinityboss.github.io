@@ -85,9 +85,18 @@ window.addEventListener('scroll', () => {
 // ===== Mobile nav toggle =====
 const navToggle = document.getElementById('navToggle');
 const navLinks = document.querySelector('.nav-links');
+function setMenu(open) {
+  navLinks.classList.toggle('open', open);
+  navToggle.setAttribute('aria-expanded', String(open));
+}
 navToggle.addEventListener('click', () => {
-  navLinks.classList.toggle('open');
+  setMenu(!navLinks.classList.contains('open'));
 });
+// close the menu after choosing a link, tapping outside, pressing Esc, or resizing to desktop
+navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+document.addEventListener('click', (e) => { if (!navbar.contains(e.target)) setMenu(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+window.addEventListener('resize', () => { if (window.innerWidth > 900) setMenu(false); });
 
 // ===== Contact form (front-end only placeholder) =====
 // ===== Contact Form with Google Sheets =====
@@ -149,4 +158,3 @@ form.addEventListener('submit', async (e) => {
     status.style.color = 'var(--red)';
   }
 });
-
