@@ -204,7 +204,7 @@ ul { list-style: none; }
 .hero-visual {
   position: absolute;
   right: 32px;
-  top: 92px;
+  top: 111px;
   width: 380px;
   display: flex;
   flex-direction: column;
