@@ -1,160 +1,235 @@
-// ===== Role cycling text =====
-const roles = [
-  "Data Analyst",
-  "Machine Learning Enthusiast",
-  "Power BI Developer",
-  "Python & SQL Practitioner",
-  "Business Intelligence"
-];
-const roleEl = document.getElementById('roleCycle');
-let roleIndex = 0, charIndex = 0, deleting = false;
-
-function typeRole() {
-  const current = roles[roleIndex];
-  if (!deleting) {
-    charIndex++;
-    roleEl.textContent = current.slice(0, charIndex);
-    if (charIndex === current.length) {
-      deleting = true;
-      setTimeout(typeRole, 1600);
-      return;
-    }
-  } else {
-    charIndex--;
-    roleEl.textContent = current.slice(0, charIndex);
-    if (charIndex === 0) {
-      deleting = false;
-      roleIndex = (roleIndex + 1) % roles.length;
-    }
-  }
-  setTimeout(typeRole, deleting ? 35 : 55);
+const menuButton = document.querySelector(".menu-toggle"),
+  navigation = document.querySelector("#navigation");
+function closeMenu() {
+  navigation.classList.remove("open");
+  menuButton.setAttribute("aria-expanded", "false");
 }
-typeRole();
-
-// ===== Console typing effect =====
-const consoleLines = [
-  { text: "$ python analyze.py --dataset retail_2026.csv", cls: "" },
-  { text: "> Loaded 12,480 rows · 24 columns", cls: "out" },
-  { text: "> Cleaning nulls, deduping, casting types...", cls: "out" },
-  { text: "$ SELECT category, AVG(margin) FROM sales", cls: "kw" },
-  { text: "  GROUP BY category ORDER BY 2 DESC;", cls: "kw" },
-  { text: "> 8 rows returned in 0.04s", cls: "out" },
-  { text: "$ model.fit(X_train, y_train)", cls: "" },
-  { text: "> Accuracy: 0.94 · F1: 0.91", cls: "str" },
-  { text: "$ powerbi --publish dashboard.pbix", cls: "" },
-  { text: "> Dashboard published ✓", cls: "out" },
-];
-const consoleEl = document.getElementById('consoleBody');
-let lineIdx = 0;
-
-function typeConsoleLine() {
-  if (lineIdx >= consoleLines.length) {
-    setTimeout(() => {
-      consoleEl.textContent = '';
-      lineIdx = 0;
-      typeConsoleLine();
-    }, 2200);
-    return;
-  }
-  const { text, cls } = consoleLines[lineIdx];
-  const span = document.createElement('span');
-  if (cls) span.className = cls;
-  consoleEl.appendChild(span);
-  let i = 0;
-  function typeChar() {
-    if (i <= text.length) {
-      span.textContent = text.slice(0, i);
-      i++;
-      setTimeout(typeChar, 14);
-    } else {
-      consoleEl.appendChild(document.createTextNode('\n'));
-      lineIdx++;
-      setTimeout(typeConsoleLine, 220);
-    }
-  }
-  typeChar();
-}
-typeConsoleLine();
-
-// ===== Navbar scroll state =====
-const navbar = document.getElementById('navbar');
-window.addEventListener('scroll', () => {
-  navbar.classList.toggle('scrolled', window.scrollY > 20);
+menuButton.addEventListener("click", () => {
+  const open = navigation.classList.toggle("open");
+  menuButton.setAttribute("aria-expanded", String(open));
 });
-
-// ===== Mobile nav toggle =====
-const navToggle = document.getElementById('navToggle');
-const navLinks = document.querySelector('.nav-links');
-function setMenu(open) {
-  navLinks.classList.toggle('open', open);
-  navToggle.setAttribute('aria-expanded', String(open));
-}
-navToggle.addEventListener('click', () => {
-  setMenu(!navLinks.classList.contains('open'));
+navigation
+  .querySelectorAll("a")
+  .forEach((a) => a.addEventListener("click", closeMenu));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeMenu();
 });
-// close the menu after choosing a link, tapping outside, pressing Esc, or resizing to desktop
-navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
-document.addEventListener('click', (e) => { if (!navbar.contains(e.target)) setMenu(false); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
-window.addEventListener('resize', () => { if (window.innerWidth > 900) setMenu(false); });
-
-// ===== Contact form (front-end only placeholder) =====
-// ===== Contact Form with Google Sheets =====
-const form = document.getElementById('contactForm');
-const status = document.getElementById('formStatus');
-
-// REPLACE THIS URL WITH YOUR ACTUAL WEB APP URL
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMsLqG-Qj5BKHYV-_EKH-m5ne90OHTFJP4-ed3fX5ZNs9Adtivx4bJwVtog2LG36bz/exec';
-
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  // Get form data
-  const name = document.getElementById('name').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const message = document.getElementById('message').value.trim();
-  
-  // Validate
-  if (!name || !email || !message) {
-    status.textContent = 'Please fill in all fields.';
-    status.style.color = 'var(--red)';
-    return;
-  }
-  
-  // Show loading state
-  status.textContent = 'Sending...';
-  status.style.color = 'var(--amber)';
-  
-  try {
-    // Send data to Google Sheets
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors', // Important for Google Apps Script
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: name,
-        email: email,
-        message: message
-      })
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".nav-shell")) closeMenu();
+});
+const views = {
+  build: {
+    title: "Give an idea a working form.",
+    copy: "Thoughtful interfaces, connected systems and the details that make software useful.",
+  },
+  ai: {
+    title: "Make technology more personal.",
+    copy: "Exploring how voice, local knowledge and AI can become a natural part of everyday work.",
+  },
+  data: {
+    title: "Turn complexity into clarity.",
+    copy: "From messy datasets to meaningful patterns. Ask the right question, then make the answer visible.",
+  },
+};
+let activeView = "build";
+const tabs = [...document.querySelectorAll("[data-view]")];
+function selectView(tab) {
+  activeView = tab.dataset.view;
+  tabs.forEach((t) => {
+    t.setAttribute("aria-selected", String(t === tab));
+    t.tabIndex = t === tab ? 0 : -1;
+  });
+  const panel = document.querySelector("#perspective-copy");
+  panel.setAttribute("aria-labelledby", tab.id);
+  panel.querySelector("h3").textContent = views[activeView].title;
+  panel.querySelector("p").textContent = views[activeView].copy;
+  document.querySelector("#perspective-count").textContent =
+    `0${tabs.indexOf(tab) + 1} / 03`;
+  drawField(performance.now());
+}
+tabs.forEach((tab, i) => {
+  tab.addEventListener("click", () => selectView(tab));
+  tab.addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    e.preventDefault();
+    const n =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? tabs.length - 1
+          : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    selectView(tabs[n]);
+    tabs[n].focus();
+  });
+});
+const projects = {
+  nexus: {
+    category: "01 / NATIVE WINDOWS & AI",
+    name: "Nexus",
+    description:
+      "A native Windows companion built around a floating desktop island. Nexus brings multi-model AI conversations, focus tools, notes and system monitoring into one interface. The Windows preview is available as an installer or portable download.",
+    stack: "C# · .NET 10 · WPF",
+    links: [
+      [
+        "Download Windows preview",
+        "https://github.com/porwalakshat124/nexus-downloads/releases/latest",
+      ],
+      ["Release notes", "https://github.com/porwalakshat124/nexus-downloads"],
+    ],
+  },
+  luna: {
+    category: "02 / PERSONAL INTELLIGENCE",
+    name: "Luna",
+    description:
+      "A personal assistant for Windows, combining voice interaction, local knowledge and desktop workflows. I’m exploring a more connected way to work with a computer, with an Electron interface, Node.js services and SQLite persistence. The website introduces the product and its capabilities.",
+    stack: "Electron · Node.js · SQLite",
+    links: [["Explore Luna", "https://luna-aiagent.vercel.app/"]],
+  },
+  deploypilot: {
+    category: "03 / DEVELOPER TOOLS",
+    name: "DeployPilot",
+    description:
+      "An AI-assisted deployment pipeline for developers. Follow build stages as they happen and investigate failures with an evidence-based diagnosis. The project brings together a Next.js interface and queue-based processing with BullMQ.",
+    stack: "Next.js · BullMQ · CSS",
+    links: [
+      ["Visit DeployPilot", "https://deploypilot-web.vercel.app/"],
+      ["Explore the source", "https://github.com/porwalakshat124/deploypilot"],
+    ],
+  },
+  retailhub: {
+    category: "04 / BUSINESS INTELLIGENCE",
+    name: "RetailHub",
+    description:
+      "An end-to-end retail analytics project exploring sales, customer behavior, inventory and promotions. SQL transformations, database modelling and Power BI dashboards bring 25+ business KPIs into a connected analytical view.",
+    stack: "PostgreSQL · Power BI · DAX · ETL · Window functions",
+    links: [
+      [
+        "Explore the project",
+        "https://github.com/porwalakshat124/RetailHub-Business-Intelligence-Analytics-Platform",
+      ],
+    ],
+  },
+};
+const dialog = document.querySelector("#project-dialog");
+let opener;
+document.querySelectorAll("[data-project]").forEach((button) =>
+  button.addEventListener("click", () => {
+    const p = projects[button.dataset.project];
+    opener = button;
+    document.querySelector("#dialog-category").textContent = p.category;
+    document.querySelector("#dialog-title").textContent = p.name;
+    document.querySelector("#dialog-description").textContent = p.description;
+    document.querySelector("#dialog-stack").textContent = p.stack;
+    const links = document.querySelector("#dialog-links");
+    links.replaceChildren();
+    p.links.forEach(([label, url], i) => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.className = i === 0 ? "pill" : "text-link";
+      a.textContent = label + " ↗";
+      links.append(a);
     });
-    
-    // Success (no-cors mode doesn't return readable response)
-    status.textContent = '✓ Message sent successfully! I\'ll get back to you soon.';
-    status.style.color = 'var(--green)';
-    
-    // Reset form
-    form.reset();
-    
-    // Clear status after 5 seconds
-    setTimeout(() => {
-      status.textContent = '';
-    }, 5000);
-    
-  } catch (error) {
-    console.error('Error:', error);
-    status.textContent = '❌ Something went wrong. Please try again or email me directly.';
-    status.style.color = 'var(--red)';
-  }
+    dialog.showModal();
+  }),
+);
+document
+  .querySelector(".dialog-close")
+  .addEventListener("click", () => dialog.close());
+dialog.addEventListener("click", (e) => {
+  const r = dialog.getBoundingClientRect();
+  if (
+    e.target === dialog &&
+    (e.clientX < r.left ||
+      e.clientX > r.right ||
+      e.clientY < r.top ||
+      e.clientY > r.bottom)
+  )
+    dialog.close();
 });
+dialog.addEventListener("close", () => opener?.focus());
+const motionButton = document.querySelector("#motion"),
+  reduced = matchMedia("(prefers-reduced-motion: reduce)");
+let motion = !reduced.matches;
+try {
+  if (localStorage.getItem("ap-motion") === "off") motion = false;
+} catch {}
+let frame = 0,
+  inView = true;
+const canvas = document.querySelector("#field"),
+  ctx = canvas.getContext("2d");
+let cw = 500,
+  ch = 340;
+function drawField(time) {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, cw, ch);
+  const t = motion ? time * 0.00035 : 0;
+  for (let y = 0; y < 23; y++)
+    for (let x = 0; x < 35; x++) {
+      let px = x / 34 - 0.5,
+        py = y / 22 - 0.5,
+        wave = Math.sin(x * 0.28 + t) * Math.cos(y * 0.3 + t) * 13;
+      if (activeView === "ai") {
+        const theta = (x / 34) * Math.PI * 2,
+          rad = (y / 22) * Math.min(cw * 0.37, ch * 0.42);
+        px = (Math.cos(theta + t * 0.15) * rad) / cw;
+        py = (Math.sin(theta + t * 0.15) * rad) / ch;
+        wave = Math.sin(theta * 3 + t) * 7;
+      } else if (activeView === "data")
+        wave = Math.sin(x * 0.23 + t) * 27 + Math.cos(y * 0.4) * 5;
+      ctx.fillStyle = `rgba(188,167,133,${0.24 + (Math.sin(x * 0.1 + y * 0.15 + t) + 1) * 0.14})`;
+      ctx.beginPath();
+      ctx.arc(
+        cw / 2 + px * cw * 0.83,
+        ch / 2 + py * ch * 0.66 + wave,
+        1,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+}
+function animate(t) {
+  drawField(t);
+  if (motion && inView && !document.hidden)
+    frame = requestAnimationFrame(animate);
+}
+function updateMotion() {
+  document.documentElement.classList.toggle("motion-off", !motion);
+  motionButton.setAttribute("aria-pressed", String(motion));
+  motionButton.textContent = motion ? "Ⅱ MOTION ON" : "▷ MOTION OFF";
+  cancelAnimationFrame(frame);
+  drawField(performance.now());
+  if (motion && inView && !document.hidden)
+    frame = requestAnimationFrame(animate);
+}
+function sizeCanvas() {
+  const r = canvas.getBoundingClientRect();
+  cw = r.width;
+  ch = r.height;
+  const d = Math.min(devicePixelRatio || 1, 2);
+  canvas.width = cw * d;
+  canvas.height = ch * d;
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  drawField(performance.now());
+}
+motionButton.addEventListener("click", () => {
+  motion = !motion;
+  try {
+    localStorage.setItem("ap-motion", motion ? "on" : "off");
+  } catch {}
+  updateMotion();
+});
+reduced.addEventListener("change", (e) => {
+  motion = !e.matches;
+  updateMotion();
+});
+new ResizeObserver(sizeCanvas).observe(canvas);
+new IntersectionObserver(([entry]) => {
+  inView = entry.isIntersecting;
+  updateMotion();
+}).observe(canvas);
+document.addEventListener("visibilitychange", updateMotion);
+sizeCanvas();
+updateMotion();
