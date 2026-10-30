@@ -196,6 +196,81 @@ h3 {
   mask-image: radial-gradient(ellipse at 50% 44%, black 30%, transparent 70%);
   transform: scale(1.15);
 }
+.portrait-dust {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: grayscale(1) brightness(0.8);
+  mask-image: radial-gradient(ellipse at 50% 44%, black 30%, transparent 73%);
+  opacity: 0;
+}
+.dust-ready .portrait-dust {
+  opacity: 1;
+}
+.dust-ready img {
+  opacity: 0;
+}
+.motion-off .dust-ready img {
+  opacity: 1;
+}
+.motion-off .portrait-dust {
+  opacity: 0;
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.hero-copy > * {
+  animation: rise-in 1.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hero-copy h1 {
+  animation-delay: 0.2s;
+}
+.hero-copy .hero-desc {
+  animation-delay: 0.45s;
+}
+.hero-copy .actions {
+  animation-delay: 0.65s;
+}
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(45px);
+  transition:
+    opacity 0.9s var(--reveal-delay, 0ms),
+    transform 1s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms);
+}
+.scroll-reveal.revealed,
+.motion-off .scroll-reveal {
+  opacity: 1;
+  transform: none;
+}
+@keyframes orbit-drift {
+  to {
+    transform: rotate(335deg) scaleY(0.4);
+  }
+}
+.luna-orbit span:first-child {
+  animation: orbit-drift 22s linear infinite;
+}
+@keyframes signal-pulse {
+  50% {
+    opacity: 0.3;
+    transform: translateY(5px);
+  }
+}
+.hero-bottom > a {
+  animation: signal-pulse 2.8s ease-in-out infinite;
+}
 .hero-side {
   position: absolute;
   left: 5%;
@@ -1154,6 +1229,16 @@ body:has(dialog[open]) {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .dust-ready img {
+    opacity: 1;
+  }
+  .portrait-dust {
+    display: none;
+  }
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+  }
   html {
     scroll-behavior: auto;
   }

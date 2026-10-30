@@ -197,6 +197,7 @@ function animate(t) {
 }
 function updateMotion() {
   document.documentElement.classList.toggle("motion-off", !motion);
+  document.dispatchEvent(new Event("portfolio-motion"));
   motionButton.setAttribute("aria-pressed", String(motion));
   motionButton.textContent = motion ? "Ⅱ MOTION ON" : "▷ MOTION OFF";
   cancelAnimationFrame(frame);
@@ -233,3 +234,150 @@ new IntersectionObserver(([entry]) => {
 document.addEventListener("visibilitychange", updateMotion);
 sizeCanvas();
 updateMotion();
+
+// Reassemble the portrait from image fragments, then let it dissolve into dust.
+// The original image stays available when motion is disabled or canvas fails.
+const portrait = document.querySelector(".portrait");
+const portraitImage = portrait.querySelector("img");
+const dust = document.createElement("canvas");
+dust.className = "portrait-dust";
+dust.setAttribute("aria-hidden", "true");
+portrait.append(dust);
+const dustContext = dust.getContext("2d");
+let dustFrame = 0,
+  dustVisible = true,
+  dustReady = false,
+  dustTime = 0,
+  dustLast = 0;
+let dustWidth = 0,
+  dustHeight = 0,
+  fragments = [];
+const smooth = (value) => {
+  const t = Math.max(0, Math.min(1, value));
+  return t * t * (3 - 2 * t);
+};
+function sizePortrait() {
+  if (!dustContext || !portraitImage.naturalWidth) return;
+  dustWidth = portrait.clientWidth;
+  dustHeight = portrait.clientHeight;
+  const ratio = Math.min(devicePixelRatio || 1, 1.5);
+  dust.width = Math.round(dustWidth * ratio);
+  dust.height = Math.round(dustHeight * ratio);
+  dustContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+  const tile = dustWidth < 500 ? 7 : 8;
+  const scale =
+    Math.max(
+      dustWidth / portraitImage.naturalWidth,
+      dustHeight / portraitImage.naturalHeight,
+    ) * 1.15;
+  const offsetX = (portraitImage.naturalWidth * scale - dustWidth) / 2;
+  const offsetY = (portraitImage.naturalHeight * scale - dustHeight) / 2;
+  fragments = [];
+  for (let y = 0; y < dustHeight; y += tile)
+    for (let x = 0; x < dustWidth; x += tile) {
+      const seed =
+        Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+      fragments.push({
+        x,
+        y,
+        tile,
+        sx: (x + offsetX) / scale,
+        sy: (y + offsetY) / scale,
+        sw: tile / scale,
+        delay: seed * 0.32 + (1 - y / dustHeight) * 0.35,
+        dx: (seed - 0.35) * 220,
+        dy: -70 - seed * 160,
+      });
+    }
+  dustReady = true;
+  portrait.classList.add("dust-ready");
+  drawPortrait();
+  syncPortrait();
+}
+function drawPortrait() {
+  if (!dustReady) return;
+  dustContext.clearRect(0, 0, dustWidth, dustHeight);
+  // Initial assembly, followed by a readable hold / dissolve / re-form cycle.
+  const cycle = Math.max(0, dustTime - 3) % 12;
+  const amount =
+    dustTime < 3
+      ? 1 - smooth(dustTime / 3)
+      : cycle < 3
+        ? 0
+        : cycle < 6
+          ? smooth((cycle - 3) / 3)
+          : cycle < 9
+            ? 1 - smooth((cycle - 6) / 3)
+            : 0;
+  for (const p of fragments) {
+    const scatter = smooth((amount - p.delay * 0.48) / 0.66);
+    const size = p.tile * (1 - scatter * 0.78);
+    dustContext.globalAlpha = 1 - scatter * 0.78;
+    dustContext.drawImage(
+      portraitImage,
+      p.sx,
+      p.sy,
+      p.sw,
+      p.sw,
+      p.x + p.dx * scatter,
+      p.y + p.dy * scatter,
+      size + 0.4,
+      size + 0.4,
+    );
+  }
+  dustContext.globalAlpha = 1;
+}
+function animatePortrait(time) {
+  if (!motion || !dustVisible || document.hidden) {
+    dustLast = 0;
+    return;
+  }
+  if (!dustLast) dustLast = time;
+  if (time - dustLast >= 32) {
+    dustTime += Math.min((time - dustLast) / 1000, 0.1);
+    dustLast = time;
+    drawPortrait();
+  }
+  dustFrame = requestAnimationFrame(animatePortrait);
+}
+function syncPortrait() {
+  cancelAnimationFrame(dustFrame);
+  dustLast = 0;
+  if (dustReady && motion && dustVisible && !document.hidden)
+    dustFrame = requestAnimationFrame(animatePortrait);
+}
+if (dustContext) {
+  new ResizeObserver(sizePortrait).observe(portrait);
+  new IntersectionObserver(([entry]) => {
+    dustVisible = entry.isIntersecting;
+    syncPortrait();
+  }).observe(portrait);
+  portraitImage.addEventListener("load", sizePortrait, { once: true });
+  if (portraitImage.complete) sizePortrait();
+  document.addEventListener("portfolio-motion", syncPortrait);
+  document.addEventListener("visibilitychange", syncPortrait);
+}
+
+// Reveal each section as it enters the viewport; keyboard focus reveals it too.
+const revealObserver = new IntersectionObserver(
+  (entries) =>
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("revealed");
+        revealObserver.unobserve(entry.target);
+      }
+    }),
+  { threshold: 0.12 },
+);
+document
+  .querySelectorAll(
+    ".section-heading, .about-copy, .perspective, .project, .skills-grid, .experience-list, .education, .contact > h2",
+  )
+  .forEach((element, index) => {
+    element.classList.add("scroll-reveal");
+    element.style.setProperty("--reveal-delay", `${(index % 2) * 100}ms`);
+    element.addEventListener("focusin", () =>
+      element.classList.add("revealed"),
+    );
+    revealObserver.observe(element);
+  });
