@@ -235,7 +235,7 @@ document.addEventListener("visibilitychange", updateMotion);
 sizeCanvas();
 updateMotion();
 
-// Reassemble the portrait from image fragments, then let it dissolve into dust.
+// Scroll position controls dissolution in both directions; no timed loop.
 // The original image stays available when motion is disabled or canvas fails.
 const portrait = document.querySelector(".portrait");
 const portraitImage = portrait.querySelector("img");
@@ -246,9 +246,8 @@ portrait.append(dust);
 const dustContext = dust.getContext("2d");
 let dustFrame = 0,
   dustVisible = true,
-  dustReady = false,
-  dustTime = 0,
-  dustLast = 0;
+  dustReady = false;
+const portraitHero = portrait.closest('.hero');
 let dustWidth = 0,
   dustHeight = 0,
   fragments = [];
@@ -264,7 +263,7 @@ function sizePortrait() {
   dust.width = Math.round(dustWidth * ratio);
   dust.height = Math.round(dustHeight * ratio);
   dustContext.setTransform(ratio, 0, 0, ratio, 0, 0);
-  const tile = dustWidth < 500 ? 7 : 8;
+  const tile = dustWidth < 500 ? 5 : 6;
   const scale =
     Math.max(
       dustWidth / portraitImage.naturalWidth,
@@ -285,8 +284,8 @@ function sizePortrait() {
         sy: (y + offsetY) / scale,
         sw: tile / scale,
         delay: seed * 0.32 + (1 - y / dustHeight) * 0.35,
-        dx: (seed - 0.35) * 220,
-        dy: -70 - seed * 160,
+        dx: (x / dustWidth - .5) * 260 + (seed - .5) * 130,
+        dy: (seed - .5) * 160,
       });
     }
   dustReady = true;
@@ -297,22 +296,15 @@ function sizePortrait() {
 function drawPortrait() {
   if (!dustReady) return;
   dustContext.clearRect(0, 0, dustWidth, dustHeight);
-  // Initial assembly, followed by a readable hold / dissolve / re-form cycle.
-  const cycle = Math.max(0, dustTime - 3) % 12;
-  const amount =
-    dustTime < 3
-      ? 1 - smooth(dustTime / 3)
-      : cycle < 3
-        ? 0
-        : cycle < 6
-          ? smooth((cycle - 3) / 3)
-          : cycle < 9
-            ? 1 - smooth((cycle - 6) / 3)
-            : 0;
+  const distance = Math.max(0, -portraitHero.getBoundingClientRect().top);
+  const range = Math.min(innerHeight, portraitHero.offsetHeight) * .6;
+  const amount = motion ? smooth((distance - 20) / range) : 0;
+  portrait.style.transform = motion ? `translateY(${Math.min(distance, range) * .65}px)` : 'none';
+  portrait.dataset.dissolve = amount.toFixed(3);
   for (const p of fragments) {
     const scatter = smooth((amount - p.delay * 0.48) / 0.66);
     const size = p.tile * (1 - scatter * 0.78);
-    dustContext.globalAlpha = 1 - scatter * 0.78;
+    dustContext.globalAlpha = (1 - scatter * 0.78) * (1 - smooth((amount - .75) / .25));
     dustContext.drawImage(
       portraitImage,
       p.sx,
@@ -327,24 +319,10 @@ function drawPortrait() {
   }
   dustContext.globalAlpha = 1;
 }
-function animatePortrait(time) {
-  if (!motion || !dustVisible || document.hidden) {
-    dustLast = 0;
-    return;
-  }
-  if (!dustLast) dustLast = time;
-  if (time - dustLast >= 32) {
-    dustTime += Math.min((time - dustLast) / 1000, 0.1);
-    dustLast = time;
-    drawPortrait();
-  }
-  dustFrame = requestAnimationFrame(animatePortrait);
-}
 function syncPortrait() {
   cancelAnimationFrame(dustFrame);
-  dustLast = 0;
-  if (dustReady && motion && dustVisible && !document.hidden)
-    dustFrame = requestAnimationFrame(animatePortrait);
+  if (dustReady && !document.hidden && (dustVisible || !motion))
+    dustFrame = requestAnimationFrame(drawPortrait);
 }
 if (dustContext) {
   new ResizeObserver(sizePortrait).observe(portrait);
@@ -356,6 +334,7 @@ if (dustContext) {
   if (portraitImage.complete) sizePortrait();
   document.addEventListener("portfolio-motion", syncPortrait);
   document.addEventListener("visibilitychange", syncPortrait);
+  window.addEventListener('scroll', syncPortrait, {passive:true});
 }
 
 // Reveal each section as it enters the viewport; keyboard focus reveals it too.
